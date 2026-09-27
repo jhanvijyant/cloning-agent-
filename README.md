@@ -47,21 +47,36 @@ Open http://localhost:3000.
 
 ## Environment variables
 
-| Variable            | Required | Purpose                                   |
-| ------------------- | -------- | ------------------------------------------ |
-| `ANTHROPIC_API_KEY` | Yes      | Used for generation, repair, and modification calls. Get one at console.anthropic.com. |
+Set **one** of the following in `.env.local` (see `.env.local.example`):
 
-Analysis itself needs no API key — it's plain HTML parsing.
+| Variable            | Provider          | Notes                                    |
+| ------------------- | ----------------- | ----------------------------------------- |
+| `ANTHROPIC_API_KEY` | Anthropic (Claude) | console.anthropic.com                    |
+| `OPENAI_API_KEY`    | OpenAI (GPT)       | platform.openai.com                      |
+| `GEMINI_API_KEY`    | Google Gemini      | aistudio.google.com/apikey               |
+
+`agent/llmClient.ts` picks whichever key is set (Anthropic first if more
+than one is set) and routes generation/repair/modification calls to that
+provider. Set `LLM_PROVIDER=openai|gemini|anthropic` to force a specific one.
+Analysis itself needs no API key — it's plain HTML parsing, no LLM call.
 
 ## Technologies
 
 - Next.js 14 (App Router) + React + TypeScript
 - Tailwind CSS
 - `cheerio` for HTML parsing
-- `@anthropic-ai/sdk` (Claude Sonnet) for generation, build-error repair, and modification
+- `@anthropic-ai/sdk`, `openai`, and `@google/generative-ai` — the app talks
+  to whichever one has an API key set (see `agent/llmClient.ts`), for
+  generation, build-error repair, and modification
 - No database, no queue, no headless browser, no state-management library
 
 ## Key implementation decisions
+
+**One LLM client, three providers.** `agent/llmClient.ts` is the only file
+that knows how to talk to Anthropic, OpenAI, or Gemini. `generator.ts` and
+`modifier.ts` just call `completeText(system, prompt, maxTokens)` — swapping
+providers, or supporting a fourth one later, never touches the actual
+generation/repair/modification logic.
 
 **Analysis is pure code, not an LLM call.** Parsing HTML into a structured
 summary (nav, sections, colors, fonts) doesn't need a model — it needs a DOM

@@ -1,5 +1,5 @@
-import Anthropic from "@anthropic-ai/sdk";
 import type { GeneratedFile, WebsiteAnalysis } from "./types";
+import { completeText } from "./llmClient";
 import {
   GENERATION_SYSTEM_PROMPT,
   buildGenerationUserPrompt,
@@ -7,38 +7,21 @@ import {
   buildRepairUserPrompt,
 } from "./prompts";
 
-const MODEL = "claude-sonnet-4-5-20250929";
-
-function client(): Anthropic {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    throw new Error(
-      "ANTHROPIC_API_KEY is not set. Add it to .env.local (see README)."
-    );
-  }
-  return new Anthropic({ apiKey });
-}
-
 export class GenerationError extends Error {}
 
 // One LLM call: structured analysis in, a small set of component files out.
+// Which provider actually handles this is decided in llmClient.ts based on
+// which API key is set - this function doesn't need to know or care.
 export async function generateProject(
   analysis: WebsiteAnalysis
 ): Promise<{ files: GeneratedFile[]; summary: string }> {
-  const anthropic = client();
+  const text = await completeText(
+    GENERATION_SYSTEM_PROMPT,
+    buildGenerationUserPrompt(analysis),
+    8000
+  );
 
-  const response = await anthropic.messages.create({
-    model: MODEL,
-    max_tokens: 8000,
-    system: GENERATION_SYSTEM_PROMPT,
-    messages: [{ role: "user", content: buildGenerationUserPrompt(analysis) }],
-  });
-
-  const text = extractText(response);
-  const parsed = safeParseJson<{
-    files: GeneratedFile[];
-    summary: string;
-  }>(text);
+  const parsed = safeParseJson<{ files: GeneratedFile[]; summary: string }>(text);
 
   if (!parsed || !Array.isArray(parsed.files) || parsed.files.length === 0) {
     throw new GenerationError(
@@ -55,18 +38,12 @@ export async function repairFile(
   content: string,
   errorOutput: string
 ): Promise<string> {
-  const anthropic = client();
+  const text = await completeText(
+    REPAIR_SYSTEM_PROMPT,
+    buildRepairUserPrompt(filePath, content, errorOutput),
+    4000
+  );
 
-  const response = await anthropic.messages.create({
-    model: MODEL,
-    max_tokens: 4000,
-    system: REPAIR_SYSTEM_PROMPT,
-    messages: [
-      { role: "user", content: buildRepairUserPrompt(filePath, content, errorOutput) },
-    ],
-  });
-
-  const text = extractText(response);
   const parsed = safeParseJson<{ content: string }>(text);
 
   if (!parsed || typeof parsed.content !== "string") {
@@ -74,13 +51,6 @@ export async function repairFile(
   }
 
   return parsed.content;
-}
-
-function extractText(response: Anthropic.Message): string {
-  return response.content
-    .filter((block): block is Anthropic.TextBlock => block.type === "text")
-    .map((block) => block.text)
-    .join("\n");
 }
 
 // The model is asked for raw JSON but occasionally wraps it in fences or
