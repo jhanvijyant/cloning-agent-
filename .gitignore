@@ -1,4 +1,4 @@
-node_modules
+node_modules .env.local .next
 .next
 generated/*
 !generated/.gitkeep
