@@ -18,18 +18,20 @@ and generates a **new** React/Next.js frontend implementation for it — not an
 embed or iframe of the original. Once generated, you can modify the site with
 plain-English instructions like *"make the navbar sticky"* and watch it rebuild live.
 
+
+
 ##  Table of contents
 
-- [What it does](#-what-it-does)
-- [Architecture](#-architecture)
-- [Setup](#-setup)
-- [Environment variables](#-environment-variables)
-- [Technologies](#-technologies)
-- [Key implementation decisions](#-key-implementation-decisions)
-- [Error handling](#-error-handling)
-- [Cost considerations](#-cost-considerations)
-- [Limitations](#-limitations)
-- [Future improvements](#-future-improvements)
+- [What it does](#what-it-does)
+- [Architecture](#architecture)
+- [Setup](#setup)
+- [Environment variables](#environment-variables)
+- [Technologies](#technologies)
+- [Key implementation decisions](#key-implementation-decisions)
+- [Error handling](#error-handling)
+- [Cost considerations](#cost-considerations)
+- [Limitations](#limitations)
+- [Future improvements](#future-improvements)
 
 ##  What it does
 
